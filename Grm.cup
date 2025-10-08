@@ -1,0 +1,199 @@
+package Parse;
+
+action code {: static Symbol.Symbol sym(String s) {
+	         return Symbol.Symbol.symbol(s);
+	        }
+	    :};
+
+parser code  {: 
+  Lexer lexer;
+
+  public void syntax_error(java_cup.runtime.Symbol current) {
+   report_error("Syntax error (" + current.sym + ")", current);
+  }
+
+  ErrorMsg.ErrorMsg errorMsg;
+
+  public void report_error(String message, java_cup.runtime.Symbol info) {
+      errorMsg.error(info.left, message);
+  }
+
+  public Grm(Lexer l, ErrorMsg.ErrorMsg err) {
+    this();
+    errorMsg=err;
+    lexer=l;
+  }
+:};
+
+scan with {: return lexer.nextToken(); :};
+
+terminal String ID, STRING_LITERAL;
+terminal Integer DECIMAL_LITERAL;
+terminal char CHAR_LITERAL;
+terminal INT, COMMA, COLON, SEMICOLON, LPAREN, RPAREN, LBRACK, RBRACK,
+
+	LBRACE, RBRACE, PLUS, MINUS, TIMES, DIVIDE, EQ, NEQ, LT, LE,
+	GT, GE, AND, OR, ASSIGN, IF, ELSE, WHILE, FOR,
+	DO, BREAK, FUN, VAR, VOLATILE,
+    REGISTER, CONTINUE, TYPEDEF,
+    STRUCT, STATIC, SIZEOF, RETURN, EXTERN, DOUBLE,
+    UNION, SHORT, FLOAT, CONST, VOID, LONG, GOTO, ENUM,
+    CHAR, AUTO, RSHIFTASSIGN, LSHIFTASSIGN, ELIPSES, BWISEORASSIGN,
+    BWISEXORASSIGN, RSHIFT, LSHIFT, DIVASSIGN, ARROW, SUBASSIGN, DECREMENT,
+    ADDASSIGN, INCREMENT, MULASSIGN, BWISEANDASSIGN, MODASSIGN, TILDE,
+    BWISEOR, BWISEXOR, PERIOD, BITWISEAND,
+    MODULUS;
+terminal AND, OR, QUESTION;
+
+non terminal Absyn.Exp          Exp;
+non terminal Absyn.Var          Var;
+
+start with Exp;
+
+Exp ::=
+      Conditional_Expression:e
+      {: RESULT = e; :}
+    | Var:v
+      {: RESULT = new Absyn.VarExp(vleft, v); :}
+    | error:e
+      {: RESULT = new Absyn.SeqExp(eleft, null); :}
+    ;
+
+
+Var ::=   ID:n
+	  {: RESULT = new Absyn.SimpleVar(nleft, sym(n)); :}
+	;
+
+Identifier ::=  ID;
+          
+Primary_Expression ::=  Identifier | 
+                        CONST | 
+                        STRING_LITERAL | 
+                        LPAREN Expression RPAREN;
+
+Postfix_Expression ::=  Primary_Expression |
+                        Postfix_Expression LBRACK Expression RBRACK |
+                        Postfix_Expression LPAREN Argument_Expression_List RPAREN |
+                        Postfix_Expression PERIOD Identifier |
+                        Postfix_Expression ARROW Identifier |
+                        Postfix_Expression INCREMENT |
+                        Postfix_Expression DECREMENT;
+
+Argument_Expression_List ::=  Assignment_Expression |
+                              Argument_Expression_List COMMA Assignment_Expression;
+
+Unary_Expression ::=  Postfix_Expression |
+                      INCREMENT Unary_Expression |
+                      DECREMENT Unary_Expression |
+                      Unary_Operator Cast_Expression |
+                      SIZEOF Unary_Expression |
+                      SIZEOF LPAREN Type_Name RPAREN;
+
+Unary_Operator ::=  BITWISEAND | 
+                    TIMES | 
+                    PLUS |
+                    MINUS | 
+                    TILDE | 
+                    NOT;
+
+
+Cast_Expression ::= Unary_Expression |
+                    LPAREN Type_Name RPAREN Cast_Expression;
+                
+Multiplicative_Expression ::= Cast_Expression |
+                              Multiplicative_Expression TIMES Cast_Expression |
+                              Multiplicative_Expression DIVIDE Cast_Expression |
+                              Multiplicative_Expression MODULUS Cast_Expression;
+
+Additive_Expression ::= Multiplicative_Expression |
+                        Additive_Expression PLUS Multiplicative_Expression |
+                        Additive_Expression MINUS Multiplicative_Expression;
+
+Shift_Expression ::=  Additive_Expression |
+                      Shift_Expression LSHIFT Additive_Expression |
+                      Shift_Expression RSHIFT Additive_Expression;
+
+Relational_Expression ::= Shift_Expression |
+                          Relational_Expression LT Shift_Expression |
+                          Relational_Expression GT Shift_Expression |
+                          Relational_Expression LE Shift_Expression |
+                          Relational_Expression GE Shift_Expression;
+
+Equality_Expression ::= Relational_Expression |
+                        Equality_Expression EQ Relational_Expression |
+                        Equality_Expression NEQ Relational_Expression;
+
+
+BITWISEAND_Expression ::=
+      Equality_Expression:e
+      {: RESULT = e; :}
+    | BITWISEAND_Expression:e1 BITWISEAND Equality_Expression:e2
+      {: RESULT = new Absyn.OpExp(e1left, Absyn.OpExp.BITAND, e1, e2); :}
+    ;
+
+BWISEXOR_Expression ::=
+      BITWISEAND_Expression:e
+      {: RESULT = e; :}
+    | BWISEXOR_Expression:e1 BWISEXOR BITWISEAND_Expression:e2
+      {: RESULT = new Absyn.OpExp(e1left, Absyn.OpExp.BITXOR, e1, e2); :}
+    ;
+
+BITWISEOR_Expression ::=
+      BWISEXOR_Expression:e
+      {: RESULT = e; :}
+    | BITWISEOR_Expression:e1 BWISEOR BWISEXOR_Expression:e2
+      {: RESULT = new Absyn.OpExp(e1left, Absyn.OpExp.BITOR, e1, e2); :}
+    ;
+
+AND_Expression ::=
+      BITWISEOR_Expression:e
+      {: RESULT = e; :}
+    | AND_Expression:e1 AND BITWISEOR_Expression:e2
+      {: RESULT = new Absyn.AndExp(e1left, e1, e2); :}
+    ;
+
+OR_Expression ::=
+      AND_Expression:e
+      {: RESULT = e; :}
+    | OR_Expression:e1 OR AND_Expression:e2
+      {: RESULT = new Absyn.OrExp(e1left, e1, e2); :}
+    ;
+
+Conditional_Expression ::=
+      OR_Expression:e
+      {: RESULT = e; :}
+    | OR_Expression:cond QUESTION Expression:then_expr COLON Conditional_Expression:else_expr
+      {: RESULT = new Absyn.CondExp(condleft, cond, then_expr, else_expr); :}
+    ;
+
+Assignment_Expression ::=
+      Conditional_Expression:e
+      {: RESULT = e; :}
+    | Unary_Expression:lhs Assignment_Operator:op Assignment_Expression:rhs
+      {: RESULT = new Absyn.AssignExp(lhsleft, lhs, op, rhs); :}
+    ;
+
+Unary_Expression ::=
+      Postfix_Expression:e
+      {: RESULT = e; :}
+    | PLUS PLUS Unary_Expression:e
+      {: RESULT = new Absyn.OpExp(eleft, Absyn.OpExp.PREINC, e, null); :}
+    | MINUS MINUS Unary_Expression:e
+      {: RESULT = new Absyn.OpExp(eleft, Absyn.OpExp.PREDEC, e, null); :}
+    | Unary_Operator:op Cast_Expression:e
+      {: RESULT = new Absyn.OpExp(opleft, op, e, null); :}
+    | SIZEOF Unary_Expression:e
+      {: RESULT = new Absyn.SizeofExp(eleft, e); :}
+    | SIZEOF LPAREN Type_Name:tn RPAREN
+      {: RESULT = new Absyn.SizeofExp(tnleft, tn); :}
+    ;
+
+Exp ::=
+      Assignment_Expression:e
+      {: RESULT = e; :}
+    | Var:v
+      {: RESULT = new Absyn.VarExp(vleft, v); :}
+    | error:e
+      {: RESULT = new Absyn.SeqExp(eleft, null); :}
+    ;
+

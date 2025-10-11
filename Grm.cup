@@ -50,15 +50,6 @@ non terminal Absyn.Var          Var;
 
 start with Exp;
 
-Exp ::=
-      Conditional_Expression:e
-      {: RESULT = e; :}
-    | Var:v
-      {: RESULT = new Absyn.VarExp(vleft, v); :}
-    | error:e
-      {: RESULT = new Absyn.SeqExp(eleft, null); :}
-    ;
-
 
 Var ::=   ID:n
 	  {: RESULT = new Absyn.SimpleVar(nleft, sym(n)); :}
@@ -128,48 +119,48 @@ BITWISEAND_Expression ::=
       Equality_Expression:e
       {: RESULT = e; :}
     | BITWISEAND_Expression:e1 BITWISEAND Equality_Expression:e2
-      {: RESULT = new Absyn.OpExp(e1left, Absyn.OpExp.BITAND, e1, e2); :}
+      {: RESULT = new Absyn.OpExpA(e1left, Absyn.OpExpA.BITAND, e1, e2); :}
     ;
 
 BWISEXOR_Expression ::=
       BITWISEAND_Expression:e
       {: RESULT = e; :}
     | BWISEXOR_Expression:e1 BWISEXOR BITWISEAND_Expression:e2
-      {: RESULT = new Absyn.OpExp(e1left, Absyn.OpExp.BITXOR, e1, e2); :}
+      {: RESULT = new Absyn.OpExpA(e1left, Absyn.OpExpA.BITXOR, e1, e2); :}
     ;
 
 BITWISEOR_Expression ::=
       BWISEXOR_Expression:e
       {: RESULT = e; :}
     | BITWISEOR_Expression:e1 BWISEOR BWISEXOR_Expression:e2
-      {: RESULT = new Absyn.OpExp(e1left, Absyn.OpExp.BITOR, e1, e2); :}
+      {: RESULT = new Absyn.OpExpA(e1left, Absyn.OpExpA.BITOR, e1, e2); :}
     ;
 
 AND_Expression ::=
       BITWISEOR_Expression:e
       {: RESULT = e; :}
     | AND_Expression:e1 AND BITWISEOR_Expression:e2
-      {: RESULT = new Absyn.AndExp(e1left, e1, e2); :}
+      {: RESULT = new Absyn.AndExpA(e1left, e1, e2); :}
     ;
 
 OR_Expression ::=
       AND_Expression:e
       {: RESULT = e; :}
     | OR_Expression:e1 OR AND_Expression:e2
-      {: RESULT = new Absyn.OrExp(e1left, e1, e2); :}
+      {: RESULT = new Absyn.OrExpA(e1left, e1, e2); :}
     ;
 
 Conditional_Expression ::=
       OR_Expression:e
       {: RESULT = e; :}
     | OR_Expression:cond QUESTION Expression:then_expr COLON Conditional_Expression:else_expr
-      {: RESULT = new Absyn.CondExp(condleft, cond, then_expr, else_expr); :}
+      {: RESULT = new Absyn.CondExpA(condleft, cond, then_expr, else_expr); :}
     ;
 
 Assignment_Expression ::=
       Conditional_Expression:e
       {: RESULT = e; :}
-    | Unary_Expression:lhs Assignment_Operator:op Assignment_Expression:rhs
+    | Unary_Expression:lhs Assignment_Operator:op Assignmethent_Expression:rhs
       {: RESULT = new Absyn.AssignExp(lhsleft, lhs, op, rhs); :}
     ;
 
@@ -177,11 +168,11 @@ Unary_Expression ::=
       Postfix_Expression:e
       {: RESULT = e; :}
     | PLUS PLUS Unary_Expression:e
-      {: RESULT = new Absyn.OpExp(eleft, Absyn.OpExp.PREINC, e, null); :}
+      {: RESULT = new Absyn.OpExpA(eleft, Absyn.OpExpA.PREINC, e, null); :}
     | MINUS MINUS Unary_Expression:e
-      {: RESULT = new Absyn.OpExp(eleft, Absyn.OpExp.PREDEC, e, null); :}
+      {: RESULT = new Absyn.OpExpA(eleft, Absyn.OpExpA.PREDEC, e, null); :}
     | Unary_Operator:op Cast_Expression:e
-      {: RESULT = new Absyn.OpExp(opleft, op, e, null); :}
+      {: RESULT = new Absyn.OpExpA(opleft, op, e, null); :}
     | SIZEOF Unary_Expression:e
       {: RESULT = new Absyn.SizeofExp(eleft, e); :}
     | SIZEOF LPAREN Type_Name:tn RPAREN
@@ -192,8 +183,30 @@ Exp ::=
       Assignment_Expression:e
       {: RESULT = e; :}
     | Var:v
-      {: RESULT = new Absyn.VarExp(vleft, v); :}
+      {: RESULT = new Absyn.VarExpA(vleft, v); :}
     | error:e
-      {: RESULT = new Absyn.SeqExp(eleft, null); :}
+      {: RESULT = new Absyn.SeqExpA(eleft, null); :}
+    ; 
+
+Assignment_Operator ::=
+      ASSIGN       {: RESULT = Absyn.AssignExpA.ASSIGN; :}
+    | ADDASSIGN    {: RESULT = Absyn.AssignExpA.PASSIGN; :}
+    | SUBASSIGN    {: RESULT = Absyn.AssignExpA.MASSIGN; :}
+    | MULASSIGN    {: RESULT = Absyn.AssignExpA.MULASSIGN; :}
+    | DIVASSIGN    {: RESULT = Absyn.AssignExpA.DIVASSIGN; :}
+    | MODASSIGN    {: RESULT = Absyn.AssignExpA.MODASSIGN; :}
+    | BWISEANDASSIGN {: RESULT = Absyn.AssignExpA.BANDASSIGN; :}
+    | BWISEXORASSIGN {: RESULT = Absyn.AssignExpA.XORASSIGN; :}
+    | LSHIFTASSIGN   {: RESULT = Absyn.AssignExpA.LSASSIGN; :}
+    | RSHIFTASSIGN   {: RESULT = Absyn.AssignExpA.RSASSIGN; :}
     ;
 
+Type_Name ::=
+      INT    {: RESULT = new Absyn.TypeName("int"); :}
+    | FLOAT  {: RESULT = new Absyn.TypeName("float"); :}
+    | DOUBLE {: RESULT = new Absyn.TypeName("double"); :}
+    | CHAR   {: RESULT = new Absyn.TypeName("char"); :}
+    | LONG   {: RESULT = new Absyn.TypeName("long"); :}
+    | SHORT  {: RESULT = new Absyn.TypeName("short"); :}
+    | VOID   {: RESULT = new Absyn.TypeName("void"); :}
+    ;    

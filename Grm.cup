@@ -45,8 +45,21 @@ terminal INT, COMMA, COLON, SEMICOLON, LPAREN, RPAREN, LBRACK, RBRACK,
     MODULUS;
 terminal AND, OR, QUESTION;
 
-non terminal Absyn.Exp          Exp;
-non terminal Absyn.Var          Var;
+non terminal Absyn.Exp                     Exp;
+non terminal Absyn.Var                     Var;
+non terminal Absyn.TypeName                Type_Name;
+non terminal Absyn.AssignExpA              Assignment_Expression;
+non terminal Absyn.CondExpA                Conditional_Expression;
+non terminal Absyn.OrExpA                  OR_Expression;
+non terminal Absyn.AndExpA                 AND_Expression;
+non terminal Absyn.OpExpA                  BITWISEOR_Expression, BWISEXOR_Expression, BITWISEAND_Expression,
+                                           Equality_Expression, Relational_Expression,
+                                           Shift_Expression, Additive_Expression, Multiplicative_Expression;
+non terminal Absyn.SizeofExpA              Unary_Expression;
+non terminal Integer                       Assignment_Operator;
+non terminal Absyn.VarExpA                 Postfix_Expression, Primary_Expression;
+non terminal String                        Identifier;
+
 
 start with Exp;
 
@@ -161,7 +174,7 @@ Assignment_Expression ::=
       Conditional_Expression:e
       {: RESULT = e; :}
     | Unary_Expression:lhs Assignment_Operator:op Assignmethent_Expression:rhs
-      {: RESULT = new Absyn.AssignExp(lhsleft, lhs, op, rhs); :}
+      {: RESULT = new Absyn.AssignExpA(lhsleft, lhs, op, rhs); :}
     ;
 
 Unary_Expression ::=
